@@ -1,0 +1,59 @@
+# Github action definitions for unit-tests with PRs.
+
+name: tfma-unit-tests
+
+# CINTENT >> MANUAL_TRIGGER
+# on:
+#   push:
+#   pull_request:
+#     branches: [ master ]
+#     paths-ignore:
+#       - '**.md'
+#       - 'docs/**'
+#   workflow_dispatch:
+on: [repository_dispatch, workflow_dispatch]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # CINTENT >> REMOVE_MATRIX
+        # python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.11']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # CINTENT >> INSERT_CINTENT
+    - uses: JavidDitty/setup-cintent@a606c80c34ec190c6a20dea33d6d58ddb6c4e0cc
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        # CINTENT >> REMOVE_CACHE
+        # cache: 'pip'
+        # cache-dependency-path: |
+        #   setup.py
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y protobuf-compiler
+        pip install .
+
+    - name: Run unit tests
+      shell: bash
+      run: |
+        python -m unittest discover -p "*_test.py"
+
+    # CINTENT >> INSERT_CINTENT
+    - name: Upload CIntent Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ${{ env.CINTENT_ARTIFACT_NAME }}
+        path: ${{ env.CINTENT_LOGS }}
